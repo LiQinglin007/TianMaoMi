@@ -1,0 +1,148 @@
+group 'com.xiaomi'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'war'
+
+sourceCompatibility = 1.8
+
+repositories {
+    google()
+    jcenter()
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+ext {
+    springVersion = "4.3.17.RELEASE"
+    mybatisVersion = "3.4.5"
+    mybatisSpringVersion = "1.3.1"
+    mybatisGeneratorCoreVersion = "1.3.5"
+    mySqlVersion = "5.1.24"
+    sqlJdbcVersion = "4.0"
+    c3p0Version = "0.9.5.2"
+    fastjsonVersion = "1.2.47"
+    slf4jVersion = "1.7.25"
+    log4jVersion = "1.2.17"
+    redisVersion = "2.9.0"
+    httpclientVersion = "4.5.3"
+    gsonVersion = "2.8.5"
+}
+
+
+configurations {
+    mybatisGenerator
+}
+
+def getDbProperties = {
+    def properties = new Properties()
+    file("src/main/resources/jdbc.properties").withInputStream { inputStream ->
+        properties.load(inputStream)
+    }
+    properties
+}
+
+task mybatisGenerate << {
+    def properties = getDbProperties()
+    ant.properties['targetProject'] = projectDir.path
+    ant.properties['driverClass'] = properties.getProperty("dataSource.driverClass")
+    ant.properties['connectionURL'] = properties.getProperty("dataSource.jdbcUrl")
+    ant.properties['userId'] = properties.getProperty("dataSource.user")
+    ant.properties['password'] = properties.getProperty("dataSource.password")
+    ant.properties['src_main_java'] = properties.getProperty("dataSource.src_main_java")
+    ant.properties['src_main_resources'] = properties.getProperty("dataSource.src_main_resources")
+    ant.properties['beanPackage'] = properties.getProperty("dataSource.beanPackage")
+    ant.properties['daoPackage'] = properties.getProperty("dataSource.daoPackage")
+    ant.properties['sqlMapperPackage'] = properties.getProperty("dataSource.resourcesPackage")
+    ant.taskdef(
+            name: 'mbgenerator',
+            classname: 'org.mybatis.generator.ant.GeneratorAntTask',
+            classpath: configurations.mybatisGenerator.asPath
+    )
+    ant.mbgenerator(overwrite: true,
+            configfile: 'src/main/resources/mybatis/generatorConfig.xml', verbose: true) {
+        propertyset {
+            propertyref(name: 'targetProject')
+            propertyref(name: 'userId')
+            propertyref(name: 'driverClass')
+            propertyref(name: 'connectionURL')
+            propertyref(name: 'password')
+            propertyref(name: 'src_main_java')
+            propertyref(name: 'src_main_resources')
+            propertyref(name: 'beanPackage')
+            propertyref(name: 'daoPackage')
+            propertyref(name: 'sqlMapperPackage')
+        }
+    }
+}
+
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    //配置自动生成bean
+    mybatisGenerator "org.mybatis.generator:mybatis-generator-core:$mybatisGeneratorCoreVersion"
+    // https://mvnrepository.com/artifact/com.microsoft.sqlserver/sqljdbc4
+    mybatisGenerator "com.microsoft.sqlserver:sqljdbc4:$sqlJdbcVersion"
+    mybatisGenerator 'tk.mybatis:mapper:3.3.9'
+
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    //Spring
+    //<!-- 添加spring核心依赖 -->
+    compile "org.springframework:spring-core:$springVersion"
+    //spring对web的支持
+    compile "org.springframework:spring-web:$springVersion"
+    //spring对ORM映射的支持
+    compile "org.springframework:spring-oxm:$springVersion"
+    //spring事务管理支持
+    compile "org.springframework:spring-tx:$springVersion"
+    //spring对JDBC的支持
+    compile "org.springframework:spring-jdbc:$springVersion"
+    //spring对MVC框架的支持
+    compile "org.springframework:spring-webmvc:$springVersion"
+    //spring上下文支持
+    compile "org.springframework:spring-context:$springVersion"
+    compile "org.springframework:spring-context-support:$springVersion"
+    //spring切面支持
+    compile "org.springframework:spring-aop:$springVersion"
+
+    //myBatis
+    compile "org.mybatis:mybatis:$mybatisVersion"
+    //myBatisSpring
+    compile "org.mybatis:mybatis-spring:$mybatisSpringVersion"
+// https://mvnrepository.com/artifact/org.mybatis.generator/mybatis-generator-core
+    compile "org.mybatis.generator:mybatis-generator-core:$mybatisGeneratorCoreVersion"
+
+    // https://mvnrepository.com/artifact/com.microsoft.sqlserver/sqljdbc4
+//    compile "com.microsoft.sqlserver:sqljdbc4:$sqlJdbcVersion"
+    //mySql
+    compile "mysql:mysql-connector-java:$mySqlVersion"
+
+    //数据库连接池
+    compile 'com.alibaba:druid:1.1.10'
+
+    //JSON工具
+    compile "com.alibaba:fastjson:$fastjsonVersion"
+
+    //日志
+    compile "org.slf4j:slf4j-api:$slf4jVersion"
+    compile "org.slf4j:slf4j-log4j12:$slf4jVersion"
+    compile 'log4j:log4j:${log4jVersion}'
+
+    //IO流工具  在上传文件的时候对文件操作使用到
+    compile 'commons-io:commons-io:2.5'
+    // https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload
+    compile 'commons-fileupload:commons-fileupload:1.3.1'
+    compile 'javax.servlet:javax.servlet-api:3.1.0'
+
+    //redis  https://mvnrepository.com/artifact/redis.clients/jedis
+    compile "redis.clients:jedis:$redisVersion"
+// https://mvnrepository.com/artifact/commons-pool/commons-pool
+    compile 'commons-pool:commons-pool:1.6'
+    //分页工具
+    // https://mvnrepository.com/artifact/com.github.pagehelper/pagehelper
+    compile 'com.github.pagehelper:pagehelper:5.1.4'
+    compile "com.google.code.gson:gson:$gsonVersion"
+    compile "org.apache.httpcomponents:httpclient:$httpclientVersion"
+}

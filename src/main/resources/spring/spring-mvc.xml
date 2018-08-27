@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-4.2.xsd">
+
+    <!-- 自动扫描该包，SpringMVC会将包下用了@controller注解的类注册为Spring的controller -->
+    <context:component-scan base-package="com.xiaomi.tianmao.controller"/>
+    <!-- 设置默认配置方案 -->
+    <!--<mvc:annotation-driven/>-->
+    <!-- 使用默认的Servlet来响应静态文件 -->
+    <mvc:default-servlet-handler/>
+    <!-- 视图解析器  -->
+    <!-- 定义跳转的文件的前后缀 ，视图模式配置 -->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/jsp/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+
+    <!-- 文件上传配置 -->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <!-- 默认编码 -->
+        <property name="defaultEncoding" value="UTF-8"/>
+        <!-- 上传文件大小限制为31M，31*1024*1024 -->
+        <property name="maxUploadSize" value="32505856"/>
+        <!-- 内存中的最大值 -->
+        <property name="maxInMemorySize" value="4096"/>
+    </bean>
+
+
+    <!-- 用于将对象转换为 JSON  -->
+    <mvc:annotation-driven>
+        <!--不使用默认消息转换器 -->
+        <mvc:message-converters register-defaults="false">
+            <!--spring消息转换器 -->
+            <bean class="org.springframework.http.converter.ByteArrayHttpMessageConverter"/>
+            <bean class="org.springframework.http.converter.BufferedImageHttpMessageConverter"/>
+
+            <!--解决@Responcebody中文乱码问题 -->
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                <constructor-arg value="UTF-8"/>
+            </bean>
+            <!--配合fastjson支持 -->
+            <bean class="com.alibaba.fastjson.support.spring.FastJsonHttpMessageConverter">
+                <!--<bean class="com.xiaomi.system.FastJsonHttpMessageConverterEx">-->
+                <property name="defaultCharset" value="UTF-8"/>
+                <property name="supportedMediaTypes">
+                    <list>
+                        <!--顺序保持这样,避免IE下载出错 -->
+                        <value>text/html;charset=UTF-8</value>
+                        <value>application/json</value>
+                    </list>
+                </property>
+                <property name="fastJsonConfig" ref="fastJsonConfig"/>
+            </bean>
+        </mvc:message-converters>
+    </mvc:annotation-driven>
+
+    <!--fastJsonConfig -->
+    <bean id="fastJsonConfig" class="com.alibaba.fastjson.support.config.FastJsonConfig">
+        <!--默认编码格式 -->
+        <property name="charset" value="UTF-8"/>
+        <property name="serializerFeatures">
+            <list>
+                <!--List字段如果为null,输出为[],而非null-->
+                <value>WriteNullListAsEmpty</value>
+                <!--Boolean字段如果为null,输出为false,而非null-->
+                <value>WriteNullBooleanAsFalse</value>
+                <!--数值字段如果为null,输出为0,而非null-->
+                <value>WriteNullNumberAsZero</value>
+                <!--是否输出值为null的字段,默认为false-->
+                <value>WriteMapNullValue</value>
+                <!--字符类型字段如果为null,输出为"",而非null-->
+                <value>WriteNullStringAsEmpty</value>
+                <!--
+                    局修改日期格式,默认为false。
+                    JSON.DEFFAULT_DATE_FORMAT = “yyyy-MM-dd”;
+                    JSON.toJSONString(obj, SerializerFeature.WriteDateUseDateFormat);
+                -->
+                <value>WriteDateUseDateFormat</value>
+                <!--消除循环引用-->
+                <value>DisableCircularReferenceDetect</value>
+                <!--格式化输出-->
+                <!--<value>PrettyFormat</value>-->
+            </list>
+        </property>
+
+    </bean>
+    <!--fastjson支持配置结束 -->
+
+    <!--配置拦截器-->
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <!--拦截匹配URL 这里是拦截所有的-->
+            <mvc:mapping path="/**"/>
+            <!--放过部分请求-->
+            <!-- 过滤浏览器发起的/favicon.ico请求，防止session被清空 -->
+            <mvc:exclude-mapping path="/favicon.ico"/>
+            <!--下边三个是配置swagger的-->
+            <mvc:exclude-mapping path="/swagger*/**"></mvc:exclude-mapping>
+            <mvc:exclude-mapping path="/v2/**"></mvc:exclude-mapping>
+            <mvc:exclude-mapping path="/webjars/**"></mvc:exclude-mapping>
+            <!--自定义的拦截器  日志拦截器-->
+            <bean class="com.xiaomi.tianmao.interceptor.SystemInterceptor">
+                <property name="charset" value="utf-8"></property>
+                <property name="allowUrls">
+                    <list><!--如果请求中包含以下路径，则不进行拦截-->
+                        <!--用户登录-->
+                        <value>/api/user/login</value>
+                        <!--接收警报通知-->
+                        <value>/api/system/sendWarnData</value>
+                        <value>/api/test/sendContent</value>
+                    </list>
+                </property>
+            </bean>
+        </mvc:interceptor>
+    </mvc:interceptors>
+</beans>

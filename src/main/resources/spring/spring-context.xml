@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-4.1.xsd
+        http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd
+        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <!-- 01.配置数据源 -->
+    <!-- 自动扫描 -->
+    <context:component-scan base-package="com.xiaomi.tianmao"></context:component-scan>
+    <context:component-scan base-package="com.xiaomi.tianmao.dao"></context:component-scan>
+
+    <!--日志-->
+    <context:component-scan base-package="com.xiaomi.tianmao.utils"/>
+
+    <!-- 1.1 关联jdbc.properties -->
+    <context:property-placeholder location="classpath:jdbc.properties"/>
+
+
+    <!-- spring配置duid数据库连接池的数据源 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+        <!-- 基本属性 url、user、password127.0.0.1 -->
+        <property name="driverClassName" value="${dataSource.driverClass}"/>
+        <property name="url" value="${dataSource.jdbcUrl}"/>
+        <property name="username" value="${dataSource.user}"/>
+        <property name="password" value="${dataSource.password}"/>
+
+        <!-- 配置初始化大小、最小、最大 -->
+        <property name="initialSize" value="${dataSource.initialPoolSize}"/>
+        <property name="minIdle" value="${dataSource.minPoolSize}"/>
+        <property name="maxActive" value="${dataSource.maxPoolSize}"/>
+        <!-- 配置获取连接等待超时的时间 -->
+        <property name="maxWait" value="${dataSource.maxWait}"/>
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+        <property name="timeBetweenEvictionRunsMillis" value="${dataSource.timeBetweenEvictionRunsMillis}"/>
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+        <property name="minEvictableIdleTimeMillis" value="${dataSource.minEvictableIdleTimeMillis}"/>
+    </bean>
+
+    <!-- mybatis和spring完美整合，不需要mybatis的配置映射文件 -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!-- 注入数据库连接池 -->
+        <property name="dataSource" ref="dataSource"/>
+        <!-- 扫描model包 使用别名 -->
+        <property name="typeAliasesPackage" value="com.xiaomi.tianmao.bean"/>
+        <!-- 扫描sql配置文件:mapper需要的xml文件 -->
+        <property name="mapperLocations" value="classpath:mapper/*.xml"/>
+        <!-- 自动扫描entity目录, 省掉Configuration.xml里的手工配置 -->
+        <property name="configLocation" value="classpath:/mybatis/mybatis-config.xml"/>
+    </bean>
+
+    <!-- 配置扫描Dao接口包，动态实现Dao接口，注入到spring容器中 -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!-- 注入sqlSessionFactory -->
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+        <!-- 给出需要扫描Dao接口包 -->
+        <property name="basePackage" value="com.xiaomi.tianmao.dao"/>
+    </bean>
+
+    <!-- 配置事务管理器 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <!-- 注入数据库连接池 -->
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!--开启注解事务 配置事务管理器-->
+    <tx:annotation-driven transaction-manager="transactionManager"></tx:annotation-driven>
+
+
+
+
+    <!-- 定义静态页面访问 -->
+    <mvc:resources mapping="/static/**" location="/static/"></mvc:resources>
+
+
+    <!-- task任务扫描注解 -->
+    <task:executor id="executor" pool-size="3"/>
+    <task:scheduler id="scheduler" pool-size="3"/>
+    <!--<task:annotation-driven executor="executor" scheduler="scheduler"/>-->
+    <!--定时任务开始-->
+    <!--定时任务包-->
+    <!--<context:component-scan base-package="com.xiaomi.tianmao.task"></context:component-scan>-->
+
+    <!--启用定时任务-->
+    <!--<task:scheduled-tasks>-->
+    <!--&lt;!&ndash;ref:类注解的值  method:方法名-->
+    <!--cron:表达式  详解：https://www.cnblogs.com/javahr/p/8318728.html-->
+    <!--&ndash;&gt;-->
+    <!--&lt;!&ndash;每天的10:00—11:00 每5s执行一次&ndash;&gt;-->
+    <!--<task:scheduled ref="TestTask" method="sysTime" cron="0/5 * 10 * * *"/>-->
+    <!--</task:scheduled-tasks>-->
+
+
+</beans>
